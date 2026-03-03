@@ -85,8 +85,12 @@ foreach ($row in $rows) {
     Write-Host ("Already have NIfTI for " + $experimentId + " - skipping.")
     continue
   }
+  if ($ScanType -eq "ALL") {
+    $url = "https://www.nitrc.org/ir/data/archive/projects/$projectId/subjects/$subjectId/experiments/$experimentId/scans?format=zip"}
+  else {
+    $url = "https://www.nitrc.org/ir/data/archive/projects/$projectId/subjects/$subjectId/experiments/$experimentId/scans/$ScanType/files?format=zip"
+  }
 
-  $url = "https://www.nitrc.org/ir/data/archive/projects/$projectId/subjects/$subjectId/experiments/$experimentId/scans/$ScanType/files?format=zip"
   $url = [Uri]::EscapeUriString($url)
   Write-Host $url
 
