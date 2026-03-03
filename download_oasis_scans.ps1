@@ -1,3 +1,4 @@
+@'
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)][string]$InputCsv,
@@ -43,18 +44,16 @@ function Guess-Project([string]$experimentId) {
 function Zip-Looks-Bad([string]$zipPath) {
   if (-not (Test-Path -LiteralPath $zipPath)) { return $true }
   $len = (Get-Item -LiteralPath $zipPath).Length
-  if ($len -lt 10240) { return $true } # <10KB is almost never a real scan zip
+  if ($len -lt 10240) { return $true }
   return $false
 }
 
-# --- Start ---
 Ensure-Dir $OutputDir
 
 $securePassword = Read-Host "Enter your NITRC password" -AsSecureString
 $cred = New-Object System.Management.Automation.PSCredential($Username, $securePassword)
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 
-# Login (creates JSESSION cookie in the WebSession)
 $jsessionUrl = "https://www.nitrc.org/ir/data/JSESSION"
 Invoke-WebRequest -Uri $jsessionUrl -Method GET -WebSession $session -Credential $cred -Headers @{Expect=""} | Out-Null
 Write-Host "Login successful."
@@ -67,7 +66,6 @@ foreach ($row in $rows) {
   $experimentId = Normalize-Id ($row.$idCol)
   if (-not $experimentId) { continue }
 
-  # Require MR session pattern
   if ($experimentId -notmatch '^OAS\d+_MR_d\d+$' -and $experimentId -notmatch '^OAS4\d+_MR_d\d+$') {
     Write-Warning ("Skipping invalid experiment id: " + $experimentId)
     continue
@@ -82,10 +80,9 @@ foreach ($row in $rows) {
   $expDir = Join-Path $OutputDir $experimentId
   Ensure-Dir $expDir
 
-  # Skip if already have any NIfTI
   $existing = Get-ChildItem -LiteralPath $expDir -Recurse -Filter "*.nii.gz" -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($existing) {
-    Write-Host ("Already have NIfTI for " + $experimentId + " — skipping.")
+    Write-Host ("Already have NIfTI for " + $experimentId + " - skipping.")
     continue
   }
 
@@ -103,7 +100,7 @@ foreach ($row in $rows) {
   }
 
   if (Zip-Looks-Bad $zipPath) {
-    Write-Warning ("Download did not look like a scan zip (no scan of that type OR auth). Removing: " + $zipPath)
+    Write-Warning ("Download did not look like a scan zip. Removing: " + $zipPath)
     Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
     continue
   }
@@ -135,6 +132,6 @@ foreach ($row in $rows) {
   else { Write-Warning ("No .nii.gz found after extraction for " + $experimentId) }
 }
 
-# Logout best-effort
 try { Invoke-WebRequest -Uri $jsessionUrl -Method DELETE -WebSession $session -Headers @{Expect=""} | Out-Null } catch {}
 Write-Host "Session ended."
+'@ | Set-Content -Encoding UTF8 -NoNewline .\download_oasis_scans.ps1
